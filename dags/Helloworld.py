@@ -1,44 +1,47 @@
 from airflow import DAG
-from airflow.operators import BashOperator
 from datetime import datetime, timedelta
+from airflow.contrib.operators.kubernetes_pod_operator import KubernetesPodOperator
+from airflow.operators.dummy_operator import DummyOperator
 
-# Following are defaults which can be overridden later on
 default_args = {
-    'owner': 'manasi',
+    'owner': 'airflow',
     'depends_on_past': False,
-    'start_date': datetime(2016, 4, 15),
-    'email': ['manasidalvi14@gmail.com'],
+    'start_date': datetime.utcnow(),
+    'email': ['airflow@example.com'],
     'email_on_failure': False,
     'email_on_retry': False,
     'retries': 1,
-    'retry_delay': timedelta(minutes=1),
+    'retry_delay': timedelta(minutes=5)
 }
 
-dag = DAG('Helloworld', default_args=default_args)
+dag = DAG(
+    'kubernetes_sample', default_args=default_args, schedule_interval=timedelta(minutes=10))
 
-# t1, t2, t3 and t4 are examples of tasks created using operators
+start = DummyOperator(task_id='run_this_first', dag=dag)
 
-t1 = BashOperator(
-    task_id='task_1',
-    bash_command='echo "Hello World from Task 1"',
-    dag=dag)
+passing = KubernetesPodOperator(namespace='airflow',
+                          image="python:3.6",
+                          cmds=["python","-c"],
+                          arguments=["print('hello world')"],
+                          labels={"foo": "bar"},
+                          name="passing-test",
+                          task_id="passing-task",
+                          get_logs=True,
+                          dag=dag,
+                          in_cluster=True
+                          )
 
-t2 = BashOperator(
-    task_id='task_2',
-    bash_command='echo "Hello World from Task 2"',
-    dag=dag)
+failing = KubernetesPodOperator(namespace='airflow',
+                          image="ubuntu:16.04",
+                          cmds=["python","-c"],
+                          arguments=["print('hello world')"],
+                          labels={"foo": "bar"},
+                          name="fail",
+                          task_id="failing-task",
+                          get_logs=True,
+                          dag=dag,
+                          in_cluster=True
+                          )
 
-t3 = BashOperator(
-    task_id='task_3',
-    bash_command='echo "Hello World from Task 3"',
-    dag=dag)
-
-t4 = BashOperator(
-    task_id='task_4',
-    bash_command='echo "Hello World from Task 4"',
-    dag=dag)
-
-t2.set_upstream(t1)
-t3.set_upstream(t1)
-t4.set_upstream(t2)
-t4.set_upstream(t3)
+passing.set_upstream(start)
+failing.set_upstream(start)
