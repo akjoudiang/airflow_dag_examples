@@ -3,10 +3,12 @@ from datetime import datetime, timedelta
 from airflow.contrib.operators.kubernetes_pod_operator import KubernetesPodOperator
 from airflow.operators.dummy_operator import DummyOperator
 
+seven_days_ago = datetime.combine(datetime.today() - timedelta(7),datetime.min.time())
+
 default_args = {
     'owner': 'airflow',
     'depends_on_past': False,
-    'start_date': datetime.utcnow(),
+    'start_date': seven_days_ago,
     'email': ['airflow@example.com'],
     'email_on_failure': False,
     'email_on_retry': False,
