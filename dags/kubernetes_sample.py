@@ -4,13 +4,13 @@ from airflow.operators.dummy_operator import DummyOperator
 from airflow.models import DAG
 import os
 
-default_args = {
+args = {
     'owner': 'airflow',
     'start_date': airflow.utils.dates.days_ago(2)
 }
 
 dag = DAG(
-    'kubernetes_hello_world', default_args=default_args, schedule_interval=timedelta(minutes=10))
+    'kubernetes_hello_world', default_args=args, schedule_interval=timedelta(minutes=10))
 
 
 start = DummyOperator(task_id='start', dag=dag)
